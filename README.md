@@ -1,7 +1,7 @@
 # Basic TCP stack idea:
 Disclaimer: Note that this is just my idea of what to do following the RFC793 guidelines, there are of course multiple ways possible to do it, and not everything will be correct. I will extend this for milestone4 later.
 
-There will roughly be 3 things happening [RFC793, page 51](https://tools.ietf.org/html/rfc793#page-52):
+There will roughly be 3 classes of events happening: [RFC793, page 51](https://tools.ietf.org/html/rfc793#page-52):
 1. The user will make a call to `socket`, `connect`, `send`... or any other call.
 2. We receive stuff from the net in `tcp_rx`.
 3. Time out is triggered.
