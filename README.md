@@ -5,7 +5,7 @@ Disclaimer: Note that this is just my idea of what to do following the RFC793 gu
 1. The user will make a call to `socket`, `connect`, `send`... or any other call.
 2. We receive stuff from the net in `tcp_rx`.
 3. Time out is triggered.
-#### Note that although a lot of this is handling edge cases and other stuff that we aren't really required to handle, but it will still be useful to follow the structure they provide.
+#### Note that although a lot of RFC793 is handling edge cases and other stuff that we aren't really required to handle, but it will still be useful to follow the structure they provide.
 
 ## 1. User calls
 
