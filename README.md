@@ -89,3 +89,7 @@ Why do we keep retransmitting indefinitely? Well, we don't. Before we set the re
 6. Update our socket state to CONNECTED.
 7. Send an ACK packet with their incremented SEQ as ACK_SEQ.
 8. Free the subuff and return.
+
+## 3. A timeout is triggered [RFC793, page 76](https://tools.ietf.org/html/rfc793#page-77)
+This is all handled by the timer stuff really. Make sure you have retransmit functions that are called when a retransmission timer times out.
+According to RFC793 you should also have a user timeout, which resets everything if the user does not use the socket for a certain time. I don't think it's really necessary to implement this for our purposes, but you can of course do so. (I think just reset the timer everytime a user function is called)
