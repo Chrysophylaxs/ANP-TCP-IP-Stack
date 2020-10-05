@@ -85,7 +85,7 @@ Why do we keep retransmitting indefinitely? Well, we don't. Before we set the re
 2. If the ACK flag is set, make sure the ACK_SEQ is valid.
 3. In case the RESET flag is set, close socket, free subuff and return.
 4. In case the SYN flag is not set, free the subuff and return.
-5. If the ACK flag is set and dequeue all subuffs in the `queue_send` that have thereby been acknowledged.
+5. If the ACK flag is set, dequeue all subuffs in `queue_send` that have thereby been acknowledged.
 6. Update our socket state to CONNECTED.
 7. Send an ACK packet with their incremented SEQ as ACK_SEQ.
 8. Free the subuff and return.
