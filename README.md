@@ -83,8 +83,9 @@ Why do we keep retransmitting indefinitely? Well, we don't. Before we set the re
 #### In order to just make the 3-way handshake work, and not handle any of the errors/edge cases, you can condense the stuff in RFC793 to something like this:
 1. Make sure the socket state is SYN_SENT.
 2. If the ACK flag is set, make sure the ACK_SEQ is valid.
-3. In case the RESET flag is set, close.
-4. If the ACK flag is set, update SND_UNA in the TCB and dequeue all subuffs in the `queue_send` that have thereby been acknowledged.
-5. Update our socket state to CONNECTED.
-6. Send an ACK packet with their incremented SEQ as ACK_SEQ.
-7. Free the subuff and return.
+3. In case the RESET flag is set, close socket, free subuff and return.
+4. In case the SYN flag is not set, free the subuff and return.
+5. If the ACK flag is set and dequeue all subuffs in the `queue_send` that have thereby been acknowledged.
+6. Update our socket state to CONNECTED.
+7. Send an ACK packet with their incremented SEQ as ACK_SEQ.
+8. Free the subuff and return.
