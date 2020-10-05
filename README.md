@@ -56,7 +56,7 @@ void* <name of retransmit function>(void* arg) {
     // Other code
 }
 ```
-- `pthread_rwlock_t lock;` is a lock that you probably **should** (might not be necessary for simple implementation but not sure) use whenever you use your socket to ensure mutual exclusion.
+- `pthread_rwlock_t lock;` is a lock that you probably **should** use whenever you use your socket to ensure mutual exclusion. (This might not be necessary for a simple implementation but I haven't tested)
 
 ### `connect()` [RFC793, page 53](https://tools.ietf.org/html/rfc793#page-54)
 Whenever connect is called we do the following things:
