@@ -64,7 +64,7 @@ Whenever connect is called we do the following things:
 2. Set up the destination address and port in the socket struct by using the sockaddr struct supplied as argument to the `connect` call.
 3. Send a SYN segment. (Which also sets the socket state to SYN_SENT).
 4. Connect is a blocking call (unless the socket is in a nonblocking mode, which we dont implement), so wait until the state is no longer SYN_SENT (either failed or connected).
-5. Return 0 if connected properly (or any errors that may have happened).
+5. Return 0 if connected properly (or return your errno in case of any errors that may have happened).
 
 Your send SYN function will allocate a new subuff, reserve the entire buffer, and push the TCP header. Use the fields in the socket struct and the TCB to set the header fields.
 Make sure you update the socket state and the next sequence number in the TCB after transmitting. Instead of directly calling your transmit function, you'll likely want to queue the subuff to `queue_send` by using `sub_queue_tail()` as defined in `subuff.h`. Furthermore, you'll have to create a retransmit function and a timer that calls your retransmit function. Your retransmit function will then retransmit the same buffer you had previously stored in the queue, and also reset the timer to keep doing this indefinitely. Note that when you `ip_output` a sub, it'll change the pointers into the buffer data, but not actually mess up the data. You can use `sub_reset_header()` to resolve this. `sub_peek()` is used to get the next entry in the queue. These functions are all defined in `subuff.h`.
