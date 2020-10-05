@@ -35,7 +35,7 @@ struct tcp_socket {
 ```c
 list_add_tail(&<name of your socket>.list, &<name of global list node>);
 ```
-- `int sockfd;` is our socket file descriptor, we can generate this ourself, but make sure you do not reuse this. When another call is made by the user, they will use the sockfd they got previously. We can then loop through our list of sockets by using the code below and find the socket that matches the supplied sockfd.
+- `int sockfd;` is our socket file descriptor, we can generate this ourself. When another call is made by the user, they will use the sockfd they got previously. We can then loop through our list of sockets by using the code below and find the socket that matches the supplied sockfd.
 ```c
 struct list_head* element;
 list_for_each(element, &<name of global list node>) {
