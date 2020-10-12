@@ -76,14 +76,14 @@ Normally this structure is used to ensure that packets are retransmitted in case
 We can now use the infrastructure to transmit our data, and to queue it for retransmission. On `send()`, we just allocate a `subuff` that accommodates for `min(len, 536)` bytes of data. 536 bytes is the default TCP payload length to avoid ip fragmentation and what not. In case the user wants to transmit more than 536 bytes, we allocate multiple `subuff`s. Each packet gets transmitted and queued for retransmission. Note that every packet now has its ACK flag set to 1.
 
 ### `recv()` [RFC793, page 58](https://tools.ietf.org/html/rfc793#page-58)
-This is where `queue_recv` comes in. Every packet containing data that is received by our `tcp_rx()` function gets queued to the subuff. Our `recv()` function just loops through the packets in the queue and `memcpy`s the data in the payload of the `subuff` to the user's supplied buffer. Make sure not to overwrite the user's receive length. If all the data from a `subuff` is read, the `subuff` gets dequeued and freed. If only half of the `subuff` is read before the user buffer fills up, we decrease `subuff->dlen` and increase `subuff->paylaod` in order to not read the same information twice.
+This is where `queue_recv` comes in. Every packet containing data that is received by our `tcp_rx()` function gets queued to the subuff. Our `recv()` function just loops through the packets in the queue and `memcpy`s the data in the payload of the `subuff` to the user's supplied buffer. Make sure not to overwrite the user's receive length. If all the data from a `subuff` is read, the `subuff` gets dequeued and freed. If only half of the `subuff` is read before the user buffer fills up, we decrease `subuff->dlen` and increase `subuff->paylaod` in order to not read the same information twice the second time around.
 
 ### `close()` [RFC793, page 60](https://tools.ietf.org/html/rfc793#page-60)
-Very similar to `send`, we just transmit and queue a FIN packet for retranmission. We then return and let the TCP stack handle the handshake behind the scenes.
+Very similar to `send`, we just transmit and queue a FIN packet for retranmission. Sending a FIN sets the socket state to FIN_WAIT_1 We then return and let the TCP stack handle the handshake behind the scenes.
 
 ## 2. We receive stuff in `tcp_rx()`: The dreaded [SEGMENT ARRIVES (RFC793)](https://tools.ietf.org/html/rfc793#page-65)
 Why do we keep retransmitting indefinitely? Well, we don't. Before we set the retransmit timer we check if there is even a buffer in the queue to retransmit. If there isn't, then there is no need to create a new timer and we can just return. So our implementation stops retransmitting buffers when they get removed from the send queue. How? Well this lies at the heart of the TCP protocol. TCP ensures a receiver has received a sender's packets by responding to the packets with an acknowledgement sequence number. This ACK sequence number will be the latest sequence number they received from the sender, incremented by 1. Therefore, when we, as sender, receive an ACK_SEQ, we can go through our `queue_send` and remove all the subuffs that have a sequence number lower than the ACK_SEQ we received. This will in turn cause the retransmission to stop (unless we filled the queue with new unACKed packets). The `tcp_rx()` routine will look something like this:
-1. Initialize our TCP header struct.
+1. Initialize our TCP header struct. It might also be useful to set the relevant `subuff` member variables (dlen, payload, seq, end_seq). We can use these in our queues to easily determine whether they contain data / can be ACKed.
 2. Find the socket we use by using the ports in the TCP header.
 3. Follow [SEGMENT ARRIVES (RFC793)](https://tools.ietf.org/html/rfc793#page-65) very closely ;)
 #### In order to just make the 3-way handshake work, and not handle any of the errors/edge cases, you can condense the stuff in RFC793 to something like this:
@@ -95,6 +95,19 @@ Why do we keep retransmitting indefinitely? Well, we don't. Before we set the re
 6. Update our socket state to CONNECTED.
 7. Send an ACK packet with their incremented SEQ as ACK_SEQ.
 8. Free the subuff and return.
+#### A general receive packet processing function would then go like this (This is all roughly RFC793):
+1. Follow the procedure above if the state is SYN_SENT
+2. Verify `SEG.SEQ == RCV.NXT`. Note that regularly you would check that SEG.SEQ falls inside the receive window, but we do not have to implement out of order receives.
+3. In case the RESET flag is set, close socket, free subuff and return.
+4. In case the SYN flag is not set, free the subuff and return. (We should already be connected)
+5. If the ACK flag is not set, free the subuff and return. (Should always be 1 after connecting)
+6. Remove acknowledged packets from the retransmission queue up to ACK_SEQ.
+7. Free subuff and return if ACK_SEQ duplicate (`< SND_UNA`) or invalid (`> SND_NXT`).
+8. If the state is FIN_WAIT_1 and the retransmission queue is empty, then our FIN (being the last packet that was in the queue) must have been acknowledged. Set the state to FIN_WAIT_2.
+9. If the state is TIME_WAIT and the retransmission queue is empty, then we must have received a server FIN retransmission. Just send an ACK.
+10. If the PSH flag is set, or the packet has data, queue it to the recv queue for our user. ACK the data with `ACK_SEQ += data_len`. Increase `subuff->refcount` in order to not free it at the end of this routine.
+11. If the FIN flag is set, that must then be the 3rd step of the closing handshake. ACK it with ++ACK_SEQ. If the state was FIN_WAIT_2, go to TIME_WAIT state and wait 2 minutes before clearing and freeing the socket. If the state was TIME_WAIT, reset the timeout.
+12. Free the sub and return.
 
 ## 3. A timeout is triggered [RFC793, page 76](https://tools.ietf.org/html/rfc793#page-77)
 This is all handled by the timer stuff really. Make sure you have retransmit functions that are called when a retransmission timer times out.
