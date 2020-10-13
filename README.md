@@ -99,7 +99,7 @@ Why do we keep retransmitting indefinitely? Well, we don't. Before we set the re
 1. Follow the procedure above if the state is SYN_SENT
 2. Verify `SEG.SEQ == RCV.NXT`. Note that regularly you would check that SEG.SEQ falls inside the receive window, but we do not have to implement out of order receives.
 3. In case the RESET flag is set, close socket, free subuff and return.
-4. In case the SYN flag is not set, free the subuff and return. (We should already be connected)
+4. In case the SYN flag is set, free the subuff and return. (We should already be connected)
 5. If the ACK flag is not set, free the subuff and return. (Should always be 1 after connecting)
 6. Remove acknowledged packets from the retransmission queue up to ACK_SEQ.
 7. Free subuff and return if ACK_SEQ duplicate (`< SND_UNA`) or invalid (`> SND_NXT`).
